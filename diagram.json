@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "author": "Evelyn Suzarte",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-pi-pico-w", "id": "pico", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 54.2,
+      "left": -134.4,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn2",
+      "top": 111.8,
+      "left": -134.4,
+      "attrs": { "color": "blue" }
+    },
+    { "type": "wokwi-text", "id": "text1", "top": 28.8, "left": -134.4, "attrs": { "text": "A" } },
+    { "type": "wokwi-text", "id": "text2", "top": 96, "left": -134.4, "attrs": { "text": "B" } },
+    { "type": "wokwi-rgb-led", "id": "rgb1", "top": 176.8, "left": -133.3, "attrs": {} }
+  
+  ],
+  "connections": [
+    [ "pico:GP0", "$serialMonitor:RX", "", [] ],
+    [ "pico:GP1", "$serialMonitor:TX", "", [] ],
+    [ "pico:GP5", "btn1:1.r", "green", [ "h-54.05", "v6.35" ] ],
+    [ "pico:GP6", "btn2:1.r", "green", [ "h-15.65", "v25.55" ] ],
+    [ "pico:GND.2", "btn1:2.r", "black", [ "h0" ] ],
+    [ "pico:GND.3", "btn2:2.r", "black", [ "h-15.65", "v15.95" ] ],
+    [ "pico:GP11", "rgb1:R", "green", [ "h-15.65", "v102.35", "h-115.2" ] ],
+    [ "rgb1:G", "pico:GP12", "green", [ "v19.2", "h87.7", "v-86.4" ] ],
+    [ "pico:GP13", "rgb1:B", "green", [ "h-34.85", "v63.99", "h-67.2" ] ],
+    [ "rgb1:COM", "pico:GND.4", "black", [ "v28.4", "h111.8", "v-5.63" ] ]
+  ],
+
+  
+  "dependencies": {}
+}
