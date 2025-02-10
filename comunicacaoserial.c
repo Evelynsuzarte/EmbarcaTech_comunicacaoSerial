@@ -12,9 +12,9 @@
 // Definições de GPIO
 #define BOTAO_A 5
 #define BOTAO_B 6
-#define LED_R 11
+#define LED_B 11
 #define LED_G 12
-#define LED_B 13
+#define LED_R 13
 #define MATRIZ 7
 #define I2C_PORT i2c1
 #define DISPLAY_SDA 14
@@ -81,6 +81,7 @@ void init_pin(){
     sleep_ms(50);
     ssd1306_draw_string(&display, "TESTE", 50, 50);
     ssd1306_send_data(&display);
+
     
 }
 
@@ -96,32 +97,34 @@ void exibir_texto_oled(char c) {
 void callback_botao(uint gpio, uint32_t events) {
     char texto_LED[20];
 
-    if (debounce(BOTAO_A) && gpio == BOTAO_A) {
+    if (gpio == BOTAO_A) {
         botaoA_pressionado = true;
-        gpio_put(LED_G, !gpio_get(LED_G));
-        verde = !verde;
-        printf("LED verde %s\n", verde ? "ligado" : "desligado");
-        
-        ssd1306_draw_string(&display, "Verde", 0, 0);
-        ssd1306_send_data(&display);
-        botaoA_pressionado = false;
-
-        sleep_ms(2000);
-    }
-
-    if (debounce(BOTAO_B) && gpio == BOTAO_B) {
-        botaoB_pressionado = true;
-        gpio_put(LED_B, !gpio_get(LED_B));
         azul = !azul;
-        printf("LED azul %s\n", azul ? "ligado" : "desligado");
-
-        ssd1306_draw_string(&display, "Azul", 0, 0);
+        gpio_put(LED_G, azul);
+        printf("LED AZUL %s\n", azul ? "ON" : "OFF");
+        sprintf(texto_LED, "LED AZUL %s", azul ? "ON" : "OFF");
+        ssd1306_fill(&display, 0);
+        ssd1306_draw_string(&display, texto_LED, 10, 10);
         ssd1306_send_data(&display);
-        botaoB_pressionado = false;
-
-        sleep_ms(2000);
+        sleep_ms(50);
     }
+
+    else if (gpio == BOTAO_B) {
+        botaoB_pressionado = true;
+        verde = !verde;
+        gpio_put(LED_B, verde);
+        printf("LED VERDE %s\n", verde ? "ON" : "OFF");
+        sprintf(texto_LED, "LED VERDE %s", verde ? "ON" : "OFF");
+        ssd1306_fill(&display, 0);
+        ssd1306_draw_string(&display, texto_LED, 10, 10);
+        ssd1306_send_data(&display);
+        sleep_ms(50);
+    }
+
+    botaoA_pressionado = false;
+    botaoB_pressionado = false;
 }
+
 
 
 
@@ -135,13 +138,25 @@ void uart_callback() {
 void init_oled() {
     ssd1306_init(&display, WIDTH, HEIGHT, false, I2C_ADDRESS, I2C_PORT);
     ssd1306_fill(&display, 0);
-    ssd1306_draw_string(&display, "Iniciando...", 0, 0);
+    ssd1306_draw_string(&display, "Iniciando...", 20, 20);
     ssd1306_send_data(&display);
 }
 
 
 
-
+void limpa_matriz(PIO pio, uint sm){
+    Matriz_leds_config zero = {
+        //  Coluna 0          Coluna 1          Coluna 2          Coluna 3          Coluna 4
+        // R    G    B       R    G    B       R    G    B       R    G    B       R    G    B
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}, // Linha 0
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}, // Linha 1
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}, // Linha 2
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}, // Linha 3
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}  // Linha 4
+    };
+    
+   imprimir_desenho(zero, pio, sm);
+}
 
 void numero_0(PIO pio, uint sm){
     Matriz_leds_config zero = {
@@ -327,15 +342,18 @@ int main() {
 
     PIO pio = pio0;
     uint sm = configurar_matriz(pio);
+    struct repeating_timer timer;
     init_pin();
 
-    irq_set_exclusive_handler(UART0_IRQ, uart_callback);
-    irq_set_enabled(UART0_IRQ, true);
+    //irq_set_exclusive_handler(UART0_IRQ, uart_callback);
+    //irq_set_enabled(UART0_IRQ, true);
 
     gpio_set_irq_enabled_with_callback(BOTAO_B, GPIO_IRQ_EDGE_RISE, true, &callback_botao);
     gpio_set_irq_enabled_with_callback(BOTAO_A, GPIO_IRQ_EDGE_RISE, true, &callback_botao);
 
-    while (true) {
+    limpa_matriz(pio, sm);
+
+    while (true) {     
         if (stdio_usb_connected()){
             printf("Escreva um caractere\n");
             scanf("%c", &c);
