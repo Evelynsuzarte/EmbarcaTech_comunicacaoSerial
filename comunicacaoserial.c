@@ -42,27 +42,24 @@ bool debounce(uint gpio) {
 void init_pin(){
     i2c_init(I2C_PORT, 400 * 1000);
 
-    gpio_set_function(DISPLAY_SDA, GPIO_FUNC_I2C);                    // Set the GPIO pin function to I2C
-    gpio_set_function(DISPLAY_SCL, GPIO_FUNC_I2C);                    // Set the GPIO pin function to I2C
-    gpio_pull_up(DISPLAY_SDA);                                        // Pull up the data line
-    gpio_pull_up(DISPLAY_SCL);                                        // Pull up the clock line
-    ssd1306_init(&display, WIDTH, HEIGHT, false, I2C_ADDRESS, I2C_PORT); // Inicializa o display
-    ssd1306_config(&display);                                         // Configura o display
-    ssd1306_send_data(&display);                                      // Envia os dados para o display
+    gpio_set_function(DISPLAY_SDA, GPIO_FUNC_I2C);                    
+    gpio_set_function(DISPLAY_SCL, GPIO_FUNC_I2C);                    
+    gpio_pull_up(DISPLAY_SDA);                                        
+    gpio_pull_up(DISPLAY_SCL);                                        
+    ssd1306_init(&display, WIDTH, HEIGHT, false, I2C_ADDRESS, I2C_PORT); 
+    ssd1306_config(&display);                                         
+    ssd1306_send_data(&display);                                      
 
-    // Limpa o display. O display inicia com todos os pixels LIGADOS.
-    ssd1306_fill(&display, true);
-    ssd1306_send_data(&display);
+    //ssd1306_fill(&display, true);
+    //ssd1306_send_data(&display);
 
-
-    // I2C Initialisation. Using it at 400Khz.
     i2c_init(I2C_PORT, 400*1000);
 
-    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SDA);
+    gpio_set_function(DISPLAY_SDA, GPIO_FUNC_I2C);
+    gpio_pull_up(DISPLAY_SDA);
 
-    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SCL);
+    gpio_set_function(DISPLAY_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(DISPLAY_SCL);
     
     gpio_init(LED_B);
     gpio_set_dir(LED_B, GPIO_OUT);
@@ -73,21 +70,25 @@ void init_pin(){
     gpio_init(LED_R);
     gpio_set_dir(LED_R, GPIO_OUT);
 
-    gpio_init(BUTTON_A);
-    gpio_set_dir(BUTTON_A, GPIO_IN);
-    gpio_pull_up(BUTTON_A);
+    gpio_init(BOTAO_A);
+    gpio_set_dir(BOTAO_A, GPIO_IN);
+    gpio_pull_up(BOTAO_A);
 
-    gpio_init(BUTTON_B);
-    gpio_set_dir(BUTTON_B, GPIO_IN);
-    gpio_pull_up(BUTTON_B);
+    gpio_init(BOTAO_B);
+    gpio_set_dir(BOTAO_B, GPIO_IN);
+    gpio_pull_up(BOTAO_B);
 
+    sleep_ms(50);
+    ssd1306_draw_string(&display, "TESTE", 50, 50);
+    ssd1306_send_data(&display);
+    
 }
 
 
 void exibir_texto_oled(char c) {
     ssd1306_fill(&display, 0);
     char texto[2] = {c, '\0'};
-    ssd1306_draw_string(&display, texto, 0, 0);
+    ssd1306_draw_string(&display, texto, 50, 50);
     ssd1306_send_data(&display);
 }
 
@@ -102,7 +103,10 @@ void callback_botao(uint gpio, uint32_t events) {
         printf("LED verde %s\n", verde ? "ligado" : "desligado");
         
         ssd1306_draw_string(&display, "Verde", 0, 0);
+        ssd1306_send_data(&display);
         botaoA_pressionado = false;
+
+        sleep_ms(2000);
     }
 
     if (debounce(BOTAO_B) && gpio == BOTAO_B) {
@@ -112,7 +116,10 @@ void callback_botao(uint gpio, uint32_t events) {
         printf("LED azul %s\n", azul ? "ligado" : "desligado");
 
         ssd1306_draw_string(&display, "Azul", 0, 0);
+        ssd1306_send_data(&display);
         botaoB_pressionado = false;
+
+        sleep_ms(2000);
     }
 }
 
@@ -320,34 +327,7 @@ int main() {
 
     PIO pio = pio0;
     uint sm = configurar_matriz(pio);
-
-    gpio_init(LED_R);
-    gpio_init(LED_G);
-    gpio_init(LED_B);
-    gpio_set_dir(LED_R, GPIO_OUT);
-    gpio_set_dir(LED_G, GPIO_OUT);
-    gpio_set_dir(LED_B, GPIO_OUT);
-
-    gpio_init(BOTAO_A);
-    gpio_set_dir(BOTAO_A, GPIO_IN);
-    gpio_pull_up(BOTAO_A);
-    
-    gpio_init(BOTAO_B);
-    gpio_set_dir(BOTAO_B, GPIO_IN);
-    gpio_pull_up(BOTAO_B);
-    
-    uart_init(uart0, 115200);
-    uart_set_irq_enables(uart0, true, false);
-    gpio_set_function(0, GPIO_FUNC_UART); // Pino TX
-    gpio_set_function(1, GPIO_FUNC_UART); // Pino RX
-
-
-    int baudrate = 400*1000; // 400kHz baud rate for i2c communication
-    i2c_init(I2C_PORT, baudrate);
-    gpio_set_function(DISPLAY_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(DISPLAY_SDA);
-    gpio_set_function(DISPLAY_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(DISPLAY_SCL);
+    init_pin();
 
     irq_set_exclusive_handler(UART0_IRQ, uart_callback);
     irq_set_enabled(UART0_IRQ, true);
@@ -355,17 +335,21 @@ int main() {
     gpio_set_irq_enabled_with_callback(BOTAO_B, GPIO_IRQ_EDGE_RISE, true, &callback_botao);
     gpio_set_irq_enabled_with_callback(BOTAO_A, GPIO_IRQ_EDGE_RISE, true, &callback_botao);
 
-    init_oled();
-    
     while (true) {
-        exibir_texto_oled('c');
-        if (c != '\0') {
-            exibir_texto_oled(c);
-            if (c >= '0' && c <= '9') {
-                acao((c - '0'), pio, sm);
+        if (stdio_usb_connected()){
+            printf("Escreva um caractere\n");
+            scanf("%c", &c);
+            if (c != '\0') {
+                exibir_texto_oled(c);
+                if (c >= '0' && c <= '9') {
+                    acao((c - '0'), pio, sm);
+                    exibir_texto_oled(c); 
+                }
+            }
+                sleep_ms(100);
             }
         }
-        sleep_ms(100);
+        
         
     }
-}
+
